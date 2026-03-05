@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成語挑戰王 - 1-12課官方教材版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .sentence-display {
+            font-size: 1.6rem;
+            line-height: 1.8;
+            color: #1e293b;
+            background: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            border: 1px solid #e2e8f0;
+        }
+        .idiom-blank {
+            color: #dc2626;
+            border-bottom: 4px solid #dc2626;
+            padding: 0 12px;
+            font-weight: bold;
+            min-width: 120px;
+            display: inline-block;
+            text-align: center;
+        }
+        .option-btn {
+            transition: all 0.2s ease;
+        }
+        .option-btn:hover:not(:disabled) {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- 第一步：選擇課次 -->
+    <div id="setup-container" class="max-w-4xl mx-auto py-10">
+        <div class="text-center mb-10">
+            <h1 class="text-5xl font-black text-blue-900 mb-4">成語挑戰王 🏆</h1>
+            <p class="text-slate-600 text-xl font-medium">請選擇要練習的課次範圍</p>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10" id="lesson-selector">
+            <!-- 由 JS 生成 -->
+        </div>
+
+        <div class="flex flex-col items-center gap-6">
+            <div class="flex gap-6 text-lg">
+                <button onclick="selectAll(true)" class="text-blue-600 font-bold hover:text-blue-800">全選所有課次</button>
+                <button onclick="selectAll(false)" class="text-slate-400 font-bold hover:text-slate-600">清空選擇</button>
+            </div>
+            <button id="start-btn" disabled onclick="startQuiz()" class="bg-blue-600 text-white px-20 py-5 rounded-full font-bold text-2xl shadow-2xl hover:bg-blue-700 transition disabled:opacity-30 disabled:cursor-not-allowed active:scale-95">
+                開始挑戰！
+            </button>
+            <p id="selection-hint" class="text-slate-500 font-medium">尚未選擇課次</p>
+        </div>
+    </div>
+
+    <!-- 第二步：進行測驗 -->
+    <div id="quiz-container" class="max-w-3xl mx-auto hidden">
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="location.reload()" class="text-slate-500 hover:text-blue-600 font-bold flex items-center gap-1">
+                ← 返回
+            </button>
+            <div id="current-lesson-tag" class="bg-blue-600 text-white px-6 py-1.5 rounded-full font-bold text-lg shadow-md"></div>
+            <div class="text-2xl font-black text-slate-700" id="progress-counter">0 / 0</div>
+        </div>
+
+        <div class="bg-amber-50 border-l-8 border-amber-400 p-5 mb-8 rounded-lg shadow-inner">
+            <h3 class="text-amber-800 font-black text-xl mb-2 flex items-center gap-2">
+                💡 意思解釋
+            </h3>
+            <p id="idiom-def" class="text-slate-800 text-xl leading-relaxed"></p>
+        </div>
+
+        <div class="sentence-display" id="sentence-container"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5" id="options-grid"></div>
+    </div>
+
+    <!-- 第三步：顯示結果 -->
+    <div id="result-container" class="max-w-4xl mx-auto hidden py-10">
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-black text-slate-800 mb-4">🎉 挑戰結束！</h1>
+            <p class="text-slate-500 text-xl">這是你在這幾課的學習成果</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            <div class="bg-white p-8 rounded-3xl shadow-lg text-center border-t-8 border-blue-500">
+                <div class="text-slate-400 font-bold mb-2">最終成績</div>
+                <div class="text-6xl font-black text-blue-600" id="final-score">0</div>
+                <div class="text-slate-400 text-sm mt-2">滿分 100 分</div>
+            </div>
+            <div class="bg-white p-8 rounded-3xl shadow-lg text-center border-t-8 border-green-500">
+                <div class="text-slate-400 font-bold mb-2">第一時間答對</div>
+                <div class="text-6xl font-black text-green-600" id="first-try-count">0</div>
+                <div class="text-slate-400 text-sm mt-2">題數</div>
+            </div>
+            <div class="bg-white p-8 rounded-3xl shadow-lg text-center border-t-8 border-slate-300">
+                <div class="text-slate-400 font-bold mb-2">總挑戰題數</div>
+                <div class="text-6xl font-black text-slate-700" id="total-questions">0</div>
+                <div class="text-slate-400 text-sm mt-2">題數</div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-2xl overflow-hidden mb-12">
+            <div class="bg-slate-800 p-6 text-white text-xl font-bold flex justify-between items-center">
+                <span>答題詳情回顧</span>
+                <span class="text-sm font-normal text-slate-400">點擊 🔊 再次聆聽</span>
+            </div>
+            <div class="divide-y divide-slate-100" id="history-list"></div>
+        </div>
+
+        <div class="text-center">
+            <button onclick="location.reload()" class="bg-blue-600 text-white px-16 py-5 rounded-full font-bold text-2xl shadow-xl hover:bg-blue-700 transition active:scale-95">
+                再試一次
+            </button>
+        </div>
+    </div>
+
+    <!-- 提示框 -->
+    <div id="toast" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-12 py-6 rounded-3xl text-white font-black text-3xl shadow-2xl opacity-0 scale-50 transition-all duration-300 pointer-events-none z-50"></div>
+
+    <script>
+        const allData = [
+            // 第一課
+            { lesson: "第1課", word: "三思而行", def: "比喻謹慎行事。", sentence: "做任何事之前，先（　　　　），才能降低發生錯誤的機率。" },
+            { lesson: "第1課", word: "妙手回春", def: "比喻醫師的醫術高明，能治好重病。", sentence: "王醫師（　　　　），治好了爺爺的心臟病。" },
+            { lesson: "第1課", word: "愚公移山", def: "比喻不斷努力，終能達成目標。", sentence: "再困難的事，只要能像（　　　　）一樣努力，終能完成。" },
+            { lesson: "第1課", word: "磨杵成針", def: "比喻只要有恆心努力，無論多困難都能成功。", sentence: "做事要有（　　　　）的毅力，才能成功。" },
+            { lesson: "第1課", word: "世外桃源", def: "比喻風景優美而人跡罕至的地方，或理想世界。", sentence: "這座農場環境優美，彷彿是（　　　　）。" },
+            { lesson: "第1課", word: "大開眼界", def: "大大地增長見識。", sentence: "這場精采的魔術表演，真讓大家（　　　　）。" },
+            // 第二課
+            { lesson: "第2課", word: "語無倫次", def: "說話顛三倒四，毫無條理。", sentence: "他太緊張了，以致於說話（　　　　）。" },
+            { lesson: "第2課", word: "掌上明珠", def: "指心愛的女兒。", sentence: "他是爸媽的（　　　　），大家都非常疼愛她。" },
+            { lesson: "第2課", word: "乘風破浪", def: "比喻志向遠大，氣魄雄偉，不畏艱難勇往直前。", sentence: "哥哥畢業後準備出國留學，希望他能（　　　　），開創前程。" },
+            { lesson: "第2課", word: "不可救藥", def: "比喻到了無法挽救的地步。", sentence: "他的惡習已經到了（　　　　）的地步。" },
+            { lesson: "第2課", word: "漠不關心", def: "指冷冷淡淡，不加關心。", sentence: "我們應該多關心別人，不能（　　　　）。" },
+            { lesson: "第2課", word: "三令五申", def: "再三命令告誡。", sentence: "教練（　　　　），提醒隊員一定要守時。" },
+            // 第三課
+            { lesson: "第3課", word: "萬紫千紅", def: "形容百花盛開，色彩絢麗的景象。", sentence: "花園裡（　　　　），景色十分迷人。" },
+            { lesson: "第3課", word: "當仁不讓", def: "遇到應該做的事，主動承擔而不推辭。", sentence: "他對公益活動向來（　　　　），熱情參與。" },
+            { lesson: "第3課", word: "怡然自得", def: "形容欣悅而自足。", sentence: "他在樹下讀書，一副（　　　　）的樣子。" },
+            { lesson: "第3課", word: "鳥語花香", def: "形容春天景色的美好。", sentence: "春天一到，山間（　　　　），吸引許多遊客。" },
+            { lesson: "第3課", word: "疲於奔命", def: "形容事情繁多，奔波勞累。", sentence: "他每天忙於工作，弄得（　　　　）。" },
+            { lesson: "第3課", word: "入木三分", def: "形容筆力道勁，後比喻見解深刻。", sentence: "這篇評論分析得（　　　　），入情入理。" },
+            // 第四課
+            { lesson: "第4課", word: "名正言順", def: "形容做事理由正當、充分，後指名分與實據相符。", sentence: "他既然被選為班長，由他來處理班務也是（　　　　）。" },
+            { lesson: "第4課", word: "出類拔萃", def: "形容才德遠超過他人。", sentence: "他在科學領域中（　　　　），獲得極大讚譽。" },
+            { lesson: "第4課", word: "名實相符", def: "名聲與實際情況相符。", sentence: "他在比賽中的表現優異，真是一位（　　　　）的選手。" },
+            { lesson: "第4課", word: "莫名其妙", def: "指事情或其奧妙讓人難以理解。", sentence: "他突然生氣離開，真讓人感到（　　　　）。" },
+            { lesson: "第4課", word: "出神入化", def: "形容技藝高超，達到神妙的境界。", sentence: "他的鋼琴演奏技術已經到了（　　　　）的地步。" },
+            // 第五課
+            { lesson: "第5課", word: "目瞪口呆", def: "形容因吃驚或受驚而發愣的樣子。", sentence: "這場意外發生得太突然，讓大家都看呆了，（　　　　）。" },
+            { lesson: "第5課", word: "反求諸己", def: "檢討自己的過失。", sentence: "遇到問題時應該先（　　　　），而不是只會責怪別人。" },
+            { lesson: "第5課", word: "一目十行", def: "形容閱讀速度極快。", sentence: "他讀書非常快，簡直是（　　　　）。" },
+            { lesson: "第5課", word: "舉一反三", def: "指從一件已知的事物推知其他同類的事物。", sentence: "他天資聰穎，老師教過的觀念，他都能（　　　　）。" },
+            { lesson: "第5課", word: "引人入勝", def: "指風景、文章或藝術作品非常吸引人。", sentence: "這本小說的情節扣人心弦，（　　　　）。" },
+            // 第六課
+            { lesson: "第6課", word: "半途而廢", def: "比喻事情沒做完就停止，不能堅持到底。", sentence: "既然已經開始練習，就不要（　　　　）。" },
+            { lesson: "第6課", word: "廢寢忘食", def: "形容專心努力，顧不得睡覺和吃飯。", sentence: "為了準備考試，他每天（　　　　）地讀書。" },
+            { lesson: "第6課", word: "徒勞無功", def: "白白費力，沒有功效。", sentence: "如果方法不正確，再努力也是（　　　　）。" },
+            { lesson: "第6課", word: "功德無量", def: "稱讚他人功勞或恩德極大。", sentence: "你能提供這項資源，真是（　　　　）。" },
+            { lesson: "第6課", word: "不辭辛勞", def: "不避開艱辛勞苦。", sentence: "清潔工（　　　　）地維持街道的整潔。" },
+            // 第七課
+            { lesson: "第7課", word: "青出於藍", def: "比喻學生勝過老師，或後人勝過前人。", sentence: "小明的棋藝超越了老師，真是（　　　　）。" },
+            { lesson: "第7課", word: "一清二楚", def: "指非常清楚。", sentence: "這本說明書寫得（　　　　），讓人一看就懂。" },
+            { lesson: "第7課", word: "廬山真面目", def: "比喻事物的真相或全貌。", sentence: "經過長時間的調查，這件事情的（　　　　）終於揭開了。" },
+            { lesson: "第7課", word: "名落孫山", def: "比喻考試落榜。", sentence: "他在這次公務員考試中（　　　　），心情非常沮喪。" },
+            { lesson: "第7課", word: "藍田生玉", def: "比喻名門出賢子弟。", sentence: "他出身書香門第，果然（　　　　），表現非凡。" },
+            // 第八課
+            { lesson: "第8課", word: "名列前茅", def: "比喻名次排在前面。", sentence: "他在這次數學競賽中（　　　　），獲得第一名。" },
+            { lesson: "第8課", word: "大名鼎鼎", def: "形容名氣很大。", sentence: "他可是醫學界（　　　　）的人物。" },
+            { lesson: "第8課", word: "名不虛傳", def: "指名聲與實際相符，名實一致。", sentence: "聽完他的演講，果然是（　　　　），令人獲益匪淺。" },
+            { lesson: "第8課", word: "莫名其妙", def: "指事情或其奧妙讓人難以理解。", sentence: "這封信沒有署名，真叫人感到（　　　　）。" },
+            { lesson: "第8課", word: "徒有虛名", def: "只有名聲，沒有實際內容。", sentence: "這家餐廳的服務很差，簡直是（　　　　）。" },
+            // 第九課
+            { lesson: "第9課", word: "勤能補拙", def: "勤奮可以彌補天資的不足。", sentence: "雖然他反應較慢，但他相信（　　　　），每天都很認真練習。" },
+            { lesson: "第9課", word: "拙重", def: "指粗重。", sentence: "他在家裡負責搬運這些（　　　　）的家具。" },
+            { lesson: "第9課", word: "弄巧成拙", def: "指本想裝聰明、取巧，結果反而做錯或把事情弄糟。", sentence: "他想在比賽中耍小聰明，結果反而（　　　　），慘遭失敗。" },
+            { lesson: "第9課", word: "大器晚成", def: "比喻卓越人才往往成就較晚。", sentence: "他在五十歲才獲得成功，可說是（　　　　）的典範。" },
+            { lesson: "第9課", word: "成千上萬", def: "形容數量很多。", sentence: "每年都有（　　　　）的觀光客造訪這個景點。" },
+            // 第十課
+            { lesson: "第10課", word: "孤掌難鳴", def: "比喻人孤立無助，難以成事。", sentence: "如果沒有大家的幫忙，我（　　　　），怎麼可能完成工作？" },
+            { lesson: "第10課", word: "禍不單行", def: "比喻不幸的事接二連三地發生。", sentence: "他今早錢包被偷，之後又被車撞傷，真是（　　　　）。" },
+            { lesson: "第10課", word: "迎刃而解", def: "比喻事情很容易解決。", sentence: "他是萬事通，任何事到他那兒都會（　　　　）。" },
+            // 第十一課
+            { lesson: "第11課", word: "瞭若指掌", def: "形容對事物了解得非常透徹、清楚。", sentence: "身為這裡的老住戶，他對巷弄間的小徑（　　　　）。" },
+            { lesson: "第11課", word: "胸有成竹", def: "比喻做事之前，已有通盤考量及十足把握。", sentence: "關於這次的比賽，哥哥顯得（　　　　）。" },
+            { lesson: "第11課", word: "明察秋毫", def: "形容視力極佳，能看清極細小的東西，後形容觀察入微，洞察是非。", sentence: "法官在審理案件時，必須（　　　　），才能做出公正的判決。" },
+            { lesson: "第11課", word: "瞭望", def: "向遠處看。", sentence: "我們站在山頂（　　　　），美景盡收眼底。" },
+            { lesson: "第11課", word: "一目瞭然", def: "一看就很清楚。", sentence: "這張圖表讓數據變化（　　　　）。" },
+            // 第十二課
+            { lesson: "第12課", word: "水落石出", def: "比喻事情的真相完全顯露出來。", sentence: "這樁懸案在警方的追查下，真相終於（　　　　）。" },
+            { lesson: "第12課", word: "落井下石", def: "比喻趁人危難時再加害。", sentence: "朋友遇難時，我們應該伸出援手，而不應該（　　　　）。" },
+            { lesson: "第12課", word: "石沉大海", def: "比喻從此消失，再無音訊。", sentence: "我寄出的信件一直沒收到回覆，簡直是（　　　　）。" },
+            { lesson: "第12課", word: "千真萬確", def: "形容情況極其確實。", sentence: "這件消息絕對是（　　　　），你不用懷疑。" },
+            { lesson: "第12課", word: "真面目", def: "本來的面貌。", sentence: "他終於露出了（　　　　），讓大家看清他的企圖。" }
+        ];
+
+        let selectedLessons = new Set();
+        let quizPool = [];
+        let currentIdx = 0;
+        let firstTryCount = 0;
+        let isFirstTry = true;
+        let userHistory = [];
+
+        function initSelector() {
+            const container = document.getElementById('lesson-selector');
+            for (let i = 1; i <= 12; i++) {
+                const lessonTag = `第${i}課`;
+                const btn = document.createElement('button');
+                btn.className = "lesson-btn bg-white border-2 border-slate-200 p-4 rounded-xl font-bold text-slate-700 hover:bg-slate-50 transition-all";
+                btn.innerText = lessonTag;
+                btn.onclick = () => toggleLesson(lessonTag, btn);
+                container.appendChild(btn);
+            }
+        }
+
+        function toggleLesson(lesson, btn) {
+            if (selectedLessons.has(lesson)) {
+                selectedLessons.delete(lesson);
+                btn.classList.remove('border-blue-500', 'bg-blue-50', 'text-blue-600', 'ring-2', 'ring-blue-100');
+            } else {
+                selectedLessons.add(lesson);
+                btn.classList.add('border-blue-500', 'bg-blue-50', 'text-blue-600', 'ring-2', 'ring-blue-100');
+            }
+            updateUI();
+        }
+
+        function selectAll(shouldSelect) {
+            const btns = document.querySelectorAll('.lesson-btn');
+            btns.forEach(btn => {
+                const tag = btn.innerText;
+                if (shouldSelect) {
+                    selectedLessons.add(tag);
+                    btn.classList.add('border-blue-500', 'bg-blue-50', 'text-blue-600', 'ring-2', 'ring-blue-100');
+                } else {
+                    selectedLessons.delete(tag);
+                    btn.classList.remove('border-blue-500', 'bg-blue-50', 'text-blue-600', 'ring-2', 'ring-blue-100');
+                }
+            });
+            updateUI();
+        }
+
+        function updateUI() {
+            const btn = document.getElementById('start-btn');
+            btn.disabled = selectedLessons.size === 0;
+            document.getElementById('selection-hint').innerText = selectedLessons.size > 0 ? `已選擇 ${selectedLessons.size} 個課次` : "請點選上方課次";
+        }
+
+        function startQuiz() {
+            quizPool = allData.filter(d => selectedLessons.has(d.lesson)).sort(() => Math.random() - 0.5);
+            currentIdx = 0;
+            firstTryCount = 0;
+            userHistory = [];
+            document.getElementById('setup-container').classList.add('hidden');
+            document.getElementById('result-container').classList.add('hidden');
+            document.getElementById('quiz-container').classList.remove('hidden');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            isFirstTry = true;
+            const data = quizPool[currentIdx];
+            document.getElementById('current-lesson-tag').innerText = data.lesson;
+            document.getElementById('idiom-def').innerText = data.def;
+            document.getElementById('progress-counter').innerText = `${currentIdx + 1} / ${quizPool.length}`;
+            
+            const displaySentence = data.sentence.replace(/（　　　　）/g, '<span class="idiom-blank" id="blank-space">？ ？ ？ ？</span>');
+            document.getElementById('sentence-container').innerHTML = displaySentence;
+
+            let options = [data.word];
+            const otherWords = allData.map(d => d.word).filter(w => w !== data.word);
+            while (options.length < 4) {
+                const randomWord = otherWords[Math.floor(Math.random() * otherWords.length)];
+                if (!options.includes(randomWord)) options.push(randomWord);
+            }
+            options = options.sort(() => Math.random() - 0.5);
+
+            const grid = document.getElementById('options-grid');
+            grid.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "option-btn bg-white border-2 border-slate-200 p-6 rounded-2xl text-2xl font-black text-slate-800 hover:border-blue-500 hover:text-blue-600 shadow-md";
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(opt, data.word, btn);
+                grid.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selected, correct, btn) {
+            if (selected === correct) {
+                if (isFirstTry) firstTryCount++;
+                userHistory.push({ word: correct, sentence: quizPool[currentIdx].sentence, isFirstTry, lesson: quizPool[currentIdx].lesson });
+
+                document.getElementById('blank-space').innerText = correct;
+                document.getElementById('blank-space').classList.add('text-blue-600', 'border-blue-600');
+                
+                document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+                btn.classList.remove('border-slate-200');
+                btn.classList.add('bg-green-600', 'text-white', 'border-green-600');
+
+                speakText(correct);
+                showToast("正確！🔊", "bg-green-600");
+                
+                setTimeout(() => {
+                    if (currentIdx < quizPool.length - 1) {
+                        currentIdx++;
+                        renderQuestion();
+                    } else {
+                        showResults();
+                    }
+                }, 1500);
+            } else {
+                isFirstTry = false;
+                btn.disabled = true;
+                btn.classList.add('bg-slate-100', 'text-slate-300', 'border-slate-100', 'line-through');
+                showToast("選錯囉！再試一次", "bg-red-500");
+            }
+        }
+
+        function showToast(text, bgColor) {
+            const toast = document.getElementById('toast');
+            toast.innerText = text;
+            toast.className = `fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-12 py-6 rounded-3xl text-white font-black text-3xl shadow-2xl z-50 transition-all duration-300 pointer-events-none opacity-100 scale-100 ${bgColor}`;
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'scale-50');
+            }, 800);
+        }
+
+        function showResults() {
+            document.getElementById('quiz-container').classList.add('hidden');
+            document.getElementById('result-container').classList.remove('hidden');
+
+            // 計算分數：(第一時間答對題數 / 總題數) * 100
+            const score = Math.round((firstTryCount / quizPool.length) * 100);
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('first-try-count').innerText = firstTryCount;
+            document.getElementById('total-questions').innerText = quizPool.length;
+
+            const list = document.getElementById('history-list');
+            list.innerHTML = '';
+            userHistory.forEach((item) => {
+                const div = document.createElement('div');
+                div.className = "p-8 transition hover:bg-slate-50";
+                const highlightedSentence = item.sentence.replace('（　　　　）', `<span class="text-blue-600 font-bold underline px-1">${item.word}</span>`);
+                
+                div.innerHTML = `
+                    <div>
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="bg-blue-100 text-blue-700 text-sm px-3 py-1 rounded-full font-bold">${item.lesson}</span>
+                            <span class="px-3 py-1 rounded-full text-sm font-bold ${item.isFirstTry ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
+                                ${item.isFirstTry ? '一次答對' : '重試通過'}
+                            </span>
+                            <button onclick="speakText('${item.word}')" class="text-2xl hover:scale-125 transition">🔊</button>
+                        </div>
+                        <p class="text-slate-800 text-2xl font-medium leading-relaxed">${highlightedSentence}</p>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const msg = new SpeechSynthesisUtterance(text);
+                msg.lang = 'zh-TW';
+                msg.rate = 0.7;
+                window.speechSynthesis.speak(msg);
+            }
+        }
+
+        window.onload = initSelector;
+    </script>
+</body>
+</html>
